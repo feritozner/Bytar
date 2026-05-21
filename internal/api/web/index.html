@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bytar Analytics - Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css?v=2.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+</head>
+<body data-theme="dark">
+    
+    <nav class="navbar">
+        <div class="brand">Bytar<span>&gt;Dashboard</span></div>
+        <ul class="nav-items">
+            <li id="nav-overview" class="active" onclick="switchPage('overview')">Dashboard</li>
+            <li id="nav-connections" onclick="switchPage('connections')">Active Connections</li>
+            <li id="nav-livemon" onclick="switchPage('livemon')">Live Traffic</li>
+            <li id="nav-tasks" onclick="switchPage('tasks')">Task List</li>
+            <li id="nav-lports" onclick="switchPage('lports')">Listening Ports</li>
+            <li id="nav-firewall" onclick="switchPage('firewall')">Firewall Status</li>
+            <li id="nav-wifipass" onclick="switchPage('wifipass')">Wi-Fi Passwords</li>
+        </ul>
+        <div class="nav-controls">
+            <span id="globalStatus" class="status-text">Analyst Queue: Ready</span>
+            <button id="mainScanBtn" class="action-btn scan-btn" onclick="runGlobalScan()">
+                <span id="btnText">Run Playbook</span>
+                <div class="spinner hidden" id="btnSpinner"></div>
+            </button>
+            <button class="theme-toggle" id="themeBtn" style="display:none;">Toggle</button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+        <div id="page-overview" class="page active">
+            <div class="dashboard-layout">
+                
+                <div class="main-column">
+                    <div class="panel map-panel">
+                        <div id="worldMap"></div>
+                    </div>
+
+                    <div class="stats-tables-row">
+                        
+                        <div class="panel data-panel" style="flex: 0.8;">
+                            <div class="panel-header">System Metrics</div>
+                            <div class="metrics-container chart-container">
+                                <canvas id="metricsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="panel data-panel" style="flex: 1.2;">
+                            <div class="panel-header">Traffic by Country</div>
+                            <div class="scrollable">
+                                <table>
+                                    <thead><tr><th>Country</th><th>Links</th></tr></thead>
+                                    <tbody id="countryTableBody">
+                                        <tr><td colspan="2" class="empty-state">Execute scan to populate telemetry</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="tfoot-unknown">
+                                <span>UNRESOLVED / UNKNOWN IPs</span>
+                                <span id="stat-unknown">-</span>
+                            </div>
+                        </div>
+
+                        <div class="panel data-panel" style="flex: 1.5;">
+                            <div class="panel-header">IP Scanner / Threat Intel</div>
+                            <div class="search-bar-compact">
+                                <input type="text" id="ipInput" placeholder="Target IP (e.g. 8.8.8.8)" class="text-input">
+                                <button class="action-btn intel-btn" onclick="scanSpecificIP()">Analyze</button>
+                            </div>
+                            <div class="scrollable">
+                                <table>
+                                    <tbody id="ipTableBody">
+                                        <tr><td colspan="2" class="empty-state">Awaiting target specification...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="side-column">
+                    <div class="panel iplist-panel">
+                        <div class="panel-header-search">
+                            <div class="search-header-top">
+                                <span>Analyst Findings</span>
+                                <span id="ipListCount" class="badge">0</span>
+                            </div>
+                            <input type="text" id="targetSearch" placeholder="Search IP, Port, Org, Country..." class="text-input search-filter" onkeyup="tableFilter(this, 'ipListContainer', '.target-item')">
+                        </div>
+                        <div class="iplist-container scrollable" id="ipListContainer">
+                            <div class="empty-state">Queue empty. Trigger playbook execution.</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <div id="page-connections" class="page" style="display: none; padding: 15px;">
+            <div class="page-header">
+                <h2>Established Connections Logs</h2>
+                <div class="header-controls" style="display:flex; gap:10px;">
+                    <input type="text" placeholder="Search connections..." class="text-input search-filter" onkeyup="tableFilter(this, 'connectionsTableBody', 'tr')">
+                    <button class="action-btn" id="btn-conn" onclick="loadConnections(this)">Refresh Logs</button>
+                </div>
+            </div>
+            <div class="panel data-panel scrollable-page-panel">
+                <table>
+                    <thead><tr><th>Protocol</th><th>Local Address</th><th>Remote Address</th><th>Country</th><th>Organization</th></tr></thead>
+                    <tbody id="connectionsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-tasks" class="page" style="display: none; padding: 15px;">
+            <div class="page-header">
+                <h2>System Core Tasks</h2>
+                <div class="header-controls" style="display:flex; gap:10px;">
+                    <input type="text" placeholder="Search tasks..." class="text-input search-filter" onkeyup="tableFilter(this, 'tasksTableBody', 'tr')">
+                    <button class="action-btn" id="btn-serv" onclick="loadParsedData('tasks', 3, this)">Refresh Tasks</button>
+                </div>
+            </div>
+            <div class="panel data-panel scrollable-page-panel">
+                <table>
+                    <thead><tr><th>Image Name</th><th>PID</th><th>Session Name / Session / Ram Usage</th></tr></thead>
+                    <tbody id="tasksTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-lports" class="page" style="display: none; padding: 15px;">
+            <div class="page-header">
+                <h2>Network Socket Bindings (Ports)</h2>
+                <div class="header-controls" style="display:flex; gap:10px;">
+                    <input type="text" placeholder="Search ports..." class="text-input search-filter" onkeyup="tableFilter(this, 'lportsTableBody', 'tr')">
+                    <button class="action-btn" id="btn-ports" onclick="loadParsedData('lports', 4, this)">Refresh Sockets</button>
+                </div>
+            </div>
+            <div class="panel data-panel scrollable-page-panel">
+                <table>
+                    <thead><tr><th>Protocol</th><th>Local Address</th><th>Foreign Address</th><th>State</th></tr></thead>
+                    <tbody id="lportsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-firewall" class="page" style="display: none; padding: 15px;">
+            <div class="page-header">
+                <h2>Advanced Firewall Telemetry</h2>
+                <div class="header-controls" style="display:flex; gap:10px;">
+                    <input type="text" placeholder="Search rules..." class="text-input search-filter" onkeyup="tableFilter(this, 'firewallTableBody', 'tr')">
+                    <button class="action-btn" id="btn-fw" onclick="loadParsedData('firewall', 2, this)">Query Firewall</button>
+                </div>
+            </div>
+            <div class="panel data-panel scrollable-page-panel">
+                <table>
+                    <thead><tr><th>Property</th><th>Status / Value</th></tr></thead>
+                    <tbody id="firewallTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-wifipass" class="page" style="display: none; padding: 15px;">
+            <div class="page-header">
+                <h2>Saved WLAN Credential Vault</h2>
+                <div class="header-controls" style="display:flex; gap:10px;">
+                    <input type="text" placeholder="Search SSID..." class="text-input search-filter" onkeyup="tableFilter(this, 'wifipassTableBody', 'tr')">
+                    <button class="action-btn" id="btn-wifi" onclick="loadParsedData('wifipass', 2, this)">Decrypt Vault</button>
+                </div>
+            </div>
+            <div class="panel data-panel scrollable-page-panel">
+                <table>
+                    <thead><tr><th>SSID (Network Name)</th><th>Key Content</th></tr></thead>
+                    <tbody id="wifipassTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="page-livemon" class="page" style="display: none; padding: 15px;">
+            <div class="page-header">
+                <h2>Real-Time Network Telemetry</h2>
+                <div class="header-controls" style="display:flex; gap:10px;">
+                    <input type="text" id="monIpInput" placeholder="Target IP (e.g. 192.168.1.10)" class="text-input" style="width:200px; font-weight:bold;">
+                    <button class="action-btn scan-btn" id="btn-start-mon" onclick="startWebMonitor()">▶ Start Capture</button>
+                    <button class="action-btn" id="btn-stop-mon" onclick="stopWebMonitor()" style="background-color: transparent; border-color: #EF4444; color: #EF4444;" disabled>◼ Stop</button>
+                    <button class="action-btn intel-btn" onclick="clearMonitorConsole()">Clear Log</button>
+                </div>
+            </div>
+            
+            <div class="panel data-panel" style="height: calc(100vh - 100px); background: #0E0F11; border: 1px solid #2D3136;">
+                <div class="panel-header" style="background: #1A1C20; border-bottom: 1px solid #2D3136; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="color: #3B82F6; font-weight: 700; letter-spacing: 1px;">LIVE PACKET STREAM</span>
+                        <span id="monPacketCount" class="badge" style="margin-left:15px; background: rgba(59, 130, 246, 0.1); color: #3B82F6; border: 1px solid rgba(59,130,246,0.3);">0 Packets</span>
+                    </div>
+                    <span id="wsStatusBadge" class="badge" style="background: rgba(239, 68, 68, 0.1); color: #EF4444; border: 1px solid rgba(239,68,68,0.3); padding: 4px 10px;">SOCKET OFFLINE</span>
+                </div>
+                
+                <div style="display: flex; background-color: #16181B; padding: 10px 15px; border-bottom: 1px solid #2D3136; font-size: 11px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1px;">
+                    <div style="flex: 1;">Timestamp</div>
+                    <div style="flex: 1;">Direction</div>
+                    <div style="flex: 2;">Source IP : Port</div>
+                    <div style="flex: 2;">Destination IP : Port</div>
+                    <div style="flex: 0.5; text-align: right;">Protocol</div>
+                </div>
+
+                <div id="monitorConsole" class="scrollable" style="padding: 0; font-family: 'Consolas', monospace; font-size: 12px; display: flex; flex-direction: column; overflow-y: auto;">
+                    <div style="padding: 15px; color: #9CA3AF; text-align: center; font-style: italic;">[SYS] Ready to intercept packets. Enter an IP and initialize capture.</div>
+                </div>
+            </div>
+        </div>  
+</div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
