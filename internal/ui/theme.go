@@ -15,6 +15,7 @@ const (
 	White   = "\033[97m"
 	Reset   = "\033[0m"
 	Magenta = "\033[35m"
+	Gray    = "\033[90m"
 )
 
 var CurrentTheme = Green
@@ -57,7 +58,7 @@ func ShowHelp() {
 	fmt.Printf("%stasks%s        : %sShow running Windows processes\n", CurrentTheme, Reset, White)
 	fmt.Printf("%slports%s       : %sShow listening ports\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sbanner%s       : %sShow the Bytar banner\n", CurrentTheme, Reset, White)
-	fmt.Printf("%stheme <color>%s: %sChange output theme (red, green, blue)\n", CurrentTheme, Reset, White)
+	fmt.Printf("%stheme <color>%s: %sChange output theme (red, green, blue, gray, magenta)\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sclear%s        : %sClear the terminal screen\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sexit%s         : %sExit the program\n\n", CurrentTheme, Reset, White)
 }

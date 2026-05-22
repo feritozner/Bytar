@@ -112,8 +112,10 @@ func handleCommand(input string) {
 			ui.CurrentTheme = ui.Blue
 		case "magenta":
 			ui.CurrentTheme = ui.Magenta
+		case "gray":
+			ui.CurrentTheme = ui.Gray
 		default:
-			fmt.Println("Invalid theme color. Use: magenta, red, green, or blue.")
+			fmt.Println("Invalid theme color. Use: magenta, red, green, blue, or gray.")
 		}
 		return
 	}
