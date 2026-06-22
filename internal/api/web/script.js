@@ -349,7 +349,8 @@ async function loadParsedData(command, colSpan, btn) {
                     let s1 = DOMPurify.sanitize(parts[1]);
                     let s2 = DOMPurify.sanitize(parts[2]);
                     let s3 = DOMPurify.sanitize(parts[3]);
-                    htmlString += `<tr><td><span class="badge tcp">${s0}</span></td><td>${s1}</td><td>${s2}</td><td><span class="badge run">${s3}</span></td></tr>`;
+                    let s4 = parts.length >= 5 ? DOMPurify.sanitize(parts[4]) : "-";
+                    htmlString += `<tr><td><span class="badge tcp">${s0}</span></td><td>${s1}</td><td>${s2}</td><td><span class="badge run">${s3}</span></td><td>${s4}</td></tr>`;
                 }
             });
         }

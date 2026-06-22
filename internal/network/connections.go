@@ -27,7 +27,7 @@ func ExtractIP(address string) string {
 
 func GetListeningPorts() (string, error) {
 
-	cmd := exec.Command("netstat", "-an")
+	cmd := exec.Command("netstat", "-ano")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
