@@ -59,4 +59,4 @@ go build -o bytar.exe main.go
 	![CLI Usage](assets/CLI.gif)
 
 
- 
+ Note: This tool uses IPinfo.io for IP geolocation and resolution.
