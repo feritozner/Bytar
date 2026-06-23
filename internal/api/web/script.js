@@ -233,7 +233,7 @@ function startLoading(tbodyId, colSpan) {
 
 async function loadConnections(btn) {
     if(btn) btn.disabled = true;
-    const loadInt = startLoading('connectionsTableBody', 5);
+    const loadInt = startLoading('connectionsTableBody', 6);
     try {
         const res = await fetch('/api/connections');
         const data = await res.json();
@@ -241,7 +241,7 @@ async function loadConnections(btn) {
         const tbody = document.getElementById('connectionsTableBody');
         
         if (!data || data.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' class='empty-state'>No logs captured.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' class='empty-state'>No logs captured.</td></tr>";
             return;
         }
         
@@ -252,14 +252,15 @@ async function loadConnections(btn) {
             let sRemote = DOMPurify.sanitize(conn.remote_ip);
             let sCountry = DOMPurify.sanitize(conn.country);
             let sOrg = DOMPurify.sanitize(conn.org);
+            let sPid = DOMPurify.sanitize(conn.pid);
             
             const badge = sProto.toLowerCase() === 'tcp' ? 'tcp' : 'udp';
-            htmlString += `<tr><td><span class="badge ${badge}">${sProto}</span></td><td>${sLocal}</td><td>${sRemote}</td><td>${sCountry}</td><td>${sOrg}</td></tr>`;
+            htmlString += `<tr><td><span class="badge ${badge}">${sProto}</span></td><td>${sLocal}</td><td>${sRemote}</td><td>${sCountry}</td><td>${sOrg}</td><td><strong>${sPid}</strong></td></tr>`;
         });
         tbody.innerHTML = htmlString;
     } catch (e) { 
         clearInterval(loadInt); 
-        document.getElementById('connectionsTableBody').innerHTML = "<tr><td colspan='5' style='color:var(--danger-color);'>Log parse failure.</td></tr>"; 
+        document.getElementById('connectionsTableBody').innerHTML = "<tr><td colspan='6' style='color:var(--danger-color);'>Log parse failure.</td></tr>"; 
     } finally {
         if(btn) btn.disabled = false;
     }

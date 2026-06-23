@@ -15,6 +15,7 @@ type Connection struct {
 	Country  string `json:"country"`
 	Org      string `json:"org"`
 	Loc      string `json:"loc"`
+	PID      string `json:"pid"`
 }
 
 func ExtractIP(address string) string {
@@ -53,14 +54,15 @@ func GetEstablishedConnections() ([]Connection, error) {
 	}
 
 	fmt.Println()
-	fmt.Printf("%s%-8s%s %s%-22s%s %s%-22s%s %s%-10s%s %s%-45s%s\n",
+	fmt.Printf("%s%-8s%s %s%-8s%s %s%-22s%s %s%-22s%s %s%-10s%s %s%-45s%s\n",
 		ui.Cyan, "Type", ui.Reset,
+		ui.Magenta, "PID", ui.Reset,
 		ui.Reset, "Local IP:Port", ui.Reset,
 		ui.Yellow, "Remote IP:Port", ui.Reset,
 		ui.Red, "Country", ui.Reset,
 		ui.Blue, "Org", ui.Reset,
 	)
-	fmt.Println(ui.Reset, strings.Repeat("━", 120), ui.Reset)
+	fmt.Println(ui.Reset, strings.Repeat("━", 130), ui.Reset)
 
 	var connections []Connection
 	lines := strings.Split(string(output), "\n")
@@ -73,7 +75,7 @@ func GetEstablishedConnections() ([]Connection, error) {
 
 		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
-		if len(fields) < 4 {
+		if len(fields) < 5 {
 			continue
 		}
 
@@ -94,16 +96,18 @@ func GetEstablishedConnections() ([]Connection, error) {
 			Country:  info.Country,
 			Org:      info.Org,
 			Loc:      info.Loc,
+			PID:      fields[4],
 		}
 		connections = append(connections, conn)
-		fmt.Printf("%s%-8s%s %s%-22s%s %s%-22s%s %s%-10s%s %s%-45s%s\n",
+		fmt.Printf("%s%-8s%s %s%-8s%s %s%-22s%s %s%-22s%s %s%-10s%s %s%-45s%s\n",
 			ui.Cyan, conn.Protocol, ui.Reset,
+			ui.Magenta, conn.PID, ui.Reset,
 			ui.Reset, conn.LocalIP, ui.Reset,
 			ui.Yellow, conn.RemoteIP, ui.Reset,
 			ui.Red, conn.Country, ui.Reset,
 			ui.Blue, conn.Org, ui.Reset,
 		)
 	}
-	fmt.Println(ui.Reset, strings.Repeat("━", 120), ui.Reset)
+	fmt.Println(ui.Reset, strings.Repeat("━", 130), ui.Reset)
 	return connections, nil
 }
