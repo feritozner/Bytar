@@ -30,10 +30,11 @@ function switchPage(pageId) {
     }
     
     if (pageId === 'connections' && document.getElementById('connectionsTableBody').innerHTML === '') loadConnections(document.getElementById('btn-conn'));
-    if (pageId === 'tasks' && document.getElementById('tasksTableBody').innerHTML === '') loadParsedData('tasks', 3, document.getElementById('btn-serv'));
     if (pageId === 'lports' && document.getElementById('lportsTableBody').innerHTML === '') loadParsedData('lports', 4, document.getElementById('btn-ports'));
     if (pageId === 'firewall' && document.getElementById('firewallTableBody').innerHTML === '') loadParsedData('firewall', 2, document.getElementById('btn-fw'));
     if (pageId === 'wifipass' && document.getElementById('wifipassTableBody').innerHTML === '') loadParsedData('wifipass', 2, document.getElementById('btn-wifi'));
+    if (pageId === 'tasks' && document.querySelectorAll('#tasksContainer .task-block').length === 0) loadRawTasks(document.getElementById('btn-serv'));
+    
 }
 
 function updateMetricsChart(conn = 0, ports = 0, servs = 0) {
@@ -533,6 +534,66 @@ function clearMonitorConsole() {
     document.getElementById('monitorConsole').innerHTML = "";
     monPacketCount = 0;
     document.getElementById('monPacketCount').innerText = "0 Packets";
+}
+
+async function loadRawTasks(btnElement) {
+    if(btnElement) btnElement.innerText = "Loading...";
+    try {
+        const response = await fetch('/api/tasks');
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        const rawText = data.result || "";
+        const container = document.getElementById('tasksContainer');
+        container.innerHTML = ''; 
+        
+        const blocks = rawText.split(/-{20,}/);
+        
+        blocks.forEach(block => {
+            const cleanBlock = block.trim();
+            if(cleanBlock === "") return;
+            
+            const div = document.createElement('div');
+            div.className = 'task-block'; 
+            div.style.borderBottom = '1px dashed #2D3136';
+            div.style.paddingBottom = '15px';
+            div.style.marginBottom = '15px';
+            
+            const pre = document.createElement('pre');
+            pre.style.margin = '0';
+            pre.style.fontFamily = "'Consolas', monospace";
+            pre.style.color = '#A3BE8C';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.wordBreak = 'break-all';
+            pre.style.fontSize = '13px';
+            
+            pre.innerHTML = DOMPurify.sanitize(cleanBlock);
+            
+            div.appendChild(pre);
+            container.appendChild(div);
+        });
+        
+    } catch (error) {
+        document.getElementById('tasksContainer').innerHTML = `<span style="color:#EF4444;">Error: ${error.message || error}</span>`;
+    }
+    if(btnElement) btnElement.innerText = "Refresh Tasks";
+}
+
+function filterTaskBlocks() {
+    const filter = document.getElementById('taskSearchInput').value.toLowerCase();
+    const blocks = document.querySelectorAll('.task-block');
+    
+    blocks.forEach(block => {
+        if (block.innerText.toLowerCase().includes(filter)) {
+            block.style.display = "block";
+        } else {
+            block.style.display = "none";
+        }
+    });
 }
 
 window.addEventListener('DOMContentLoaded', initWebSocket);

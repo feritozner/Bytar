@@ -124,15 +124,13 @@
             <div class="page-header">
                 <h2>System Core Tasks</h2>
                 <div class="header-controls" style="display:flex; gap:10px;">
-                    <input type="text" placeholder="Search tasks..." class="text-input search-filter" onkeyup="tableFilter(this, 'tasksTableBody', 'tr')">
-                    <button class="action-btn" id="btn-serv" onclick="loadParsedData('tasks', 3, this)">Refresh Tasks</button>
+                    <input type="text" id="taskSearchInput" placeholder="Search Name, Path, Cmd..." class="text-input search-filter" onkeyup="filterTaskBlocks()">
+                    <button class="action-btn" id="btn-serv" onclick="loadRawTasks(this)">Refresh Tasks</button>
                 </div>
             </div>
-            <div class="panel data-panel scrollable-page-panel">
-                <table>
-                    <thead><tr><th>Process Name</th><th>Process ID</th><th>Parent Process ID</th></tr></thead>
-                    <tbody id="tasksTableBody"></tbody>
-                </table>
+            
+            <div class="panel data-panel" id="tasksContainer" style="height: calc(100vh - 150px); background: #0E0F11; border: 1px solid #2D3136; padding: 15px; overflow-y: auto;">
+                <div style="color: #9CA3AF; font-style: italic;">Loading tasks...</div>
             </div>
         </div>
 

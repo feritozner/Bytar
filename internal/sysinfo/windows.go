@@ -9,9 +9,9 @@ import (
 )
 
 func GetRunningProcesses() (string, error) {
-	cmdStr := `Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ParentProcessId | Format-Table -AutoSize | Out-String`
-	cmd := exec.Command("powershell", "-NoProfile", "-Command", cmdStr)
+	cmdStr := `$p = Get-CimInstance Win32_Process; foreach($i in $p) { Write-Output "Name  : $($i.Name)` + "`n" + `PID   : $($i.ProcessId)` + "`n" + `PPID  : $($i.ParentProcessId)` + "`n" + `Path  : $($i.ExecutablePath)` + "`n" + `Cmd   : $($i.CommandLine)` + "`n" + `$('-'*60)" }`
 
+	cmd := exec.Command("powershell", "-NoProfile", "-Command", cmdStr)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
