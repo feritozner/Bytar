@@ -9,7 +9,9 @@ import (
 )
 
 func GetRunningProcesses() (string, error) {
-	cmd := exec.Command("tasklist")
+	cmdStr := `Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ParentProcessId | Format-Table -AutoSize | Out-String`
+	cmd := exec.Command("powershell", "-NoProfile", "-Command", cmdStr)
+
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
