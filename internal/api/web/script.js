@@ -73,9 +73,104 @@ function updateMetricsChart(conn = 0, ports = 0, servs = 0) {
 }
 
 function initMap() {
-    map = L.map('worldMap', { zoomControl: false }).setView([25.0, 10.0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+    document.getElementById('worldMap').style.backgroundColor = '#0d1117'; 
+
+    const worldBounds = [[-90, -180], [90, 180]];
+
+    map = L.map('worldMap', { 
+        zoomControl: false,
+        minZoom: 1.5,
+        maxBounds: worldBounds,
+        maxBoundsViscosity: 1.0
+    }).setView([25.0, 10.0], 2);
+
+    const continents = [
+        { name: 'NORTH AMERICA', coords: [45, -100] },
+        { name: 'SOUTH AMERICA', coords: [-15, -60] },
+        { name: 'EUROPE', coords: [48, 15] },
+        { name: 'AFRICA', coords: [5, 20] },
+        { name: 'ASIA', coords: [45, 90] },
+        { name: 'OCEANIA', coords: [-25, 140] }
+    ];
+
+    continents.forEach(c => {
+        const continentIcon = L.divIcon({
+            className: 'continent-label',
+            html: c.name,
+            iconSize: [200, 20],
+            iconAnchor: [100, 10]
+        });
+        L.marker(c.coords, { icon: continentIcon, interactive: false }).addTo(map);
+    });
+    
+    fetch('world.geojson')
+        .then(response => response.json())
+        .then(data => {
+            L.geoJSON(data, {
+                style: {
+                    color: "#30363d",
+                    weight: 1,
+                    fillColor: "#161b22",
+                    fillOpacity: 1
+                },
+                onEachFeature: function (feature, layer) {
+                    if (feature.properties && feature.properties.name) {
+                        try {
+
+                            let targetBounds = layer.getBounds(); 
+                            
+                            if (feature.geometry.type === 'MultiPolygon' && layer.getLayers) {
+                                let maxArea = 0;
+                                layer.getLayers().forEach(subLayer => {
+                                    const b = subLayer.getBounds();
+                                    const area = (b.getNorth() - b.getSouth()) * (b.getEast() - b.getWest());
+                                    if (area > maxArea) {
+                                        maxArea = area;
+                                        targetBounds = b;
+                                    }
+                                });
+                            }
+
+                            const centerPos = targetBounds.getCenter();
+                            
+                            const size = Math.max(targetBounds.getEast() - targetBounds.getWest(), targetBounds.getNorth() - targetBounds.getSouth());
+                            
+                            let sizeClass = 'country-small';
+                            if (size > 15) sizeClass = 'country-huge';       
+                            else if (size > 4) sizeClass = 'country-medium';
+
+                            const labelIcon = L.divIcon({
+                                className: `country-label ${sizeClass}`,
+                                html: feature.properties.name,
+                                iconSize: [120, 20],
+                                iconAnchor: [60, 10]
+                            });
+                            
+                            L.marker(centerPos, { icon: labelIcon, interactive: false }).addTo(map);
+                            
+                        } catch(e) {
+                            console.error("Label error on:", feature.properties.name);
+                        }
+                    }
+                }
+            }).addTo(map);
+        })
+        .catch(err => console.error("Failed to load map data:", err));
+    
     markerLayer = L.layerGroup().addTo(map);
+    
+    map.on('zoomend', function() {
+        const currentZoom = map.getZoom();
+        const mapElement = document.getElementById('worldMap');
+        
+        mapElement.classList.toggle('show-huge', currentZoom >= 3);
+        mapElement.classList.toggle('hide-continents', currentZoom >= 4);
+        mapElement.classList.toggle('show-medium', currentZoom >= 4);
+        mapElement.classList.toggle('show-small', currentZoom >= 5);
+    });
+
+    map.fire('zoomend');
+
     setTimeout(() => { if (map !== null) map.invalidateSize(); }, 200);
 }
 
