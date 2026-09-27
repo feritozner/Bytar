@@ -692,3 +692,301 @@ function filterTaskBlocks() {
 }
 
 window.addEventListener('DOMContentLoaded', initWebSocket);
+
+let curlparserRequests = [];
+let activeReqId = null;
+
+function toggleCurlModal(show) {
+    document.getElementById('curlModal').style.display = show ? 'flex' : 'none';
+    if(show) {
+        document.getElementById('curlInput').value = '';
+        document.getElementById('curlInput').focus();
+    }
+}
+
+async function parseCurlAndAdd() {
+    const rawCurl = document.getElementById('curlInput').value.trim();
+    if (!rawCurl) return;
+
+    let cleanStr = rawCurl
+        .replace(/(?:\\|\^)\s*[\n\r]+/g, ' ')
+        .replace(/[\n\r]+/g, ' ')
+        .replace(/\$'/g, "'")
+        .replace(/\^"/g, '"')
+        .replace(/\^/g, ''); 
+    let tokens = [];
+    let current = "";
+    let quoteChar = null;
+    let escapeNext = false;
+
+    for (let i = 0; i < cleanStr.length; i++) {
+        let char = cleanStr[i];
+
+        if (escapeNext) {
+            current += char;
+            escapeNext = false;
+            continue;
+        }
+
+        if (char === '\\') {
+            escapeNext = true;
+            continue;
+        }
+
+        if (quoteChar) {
+            if (char === quoteChar) {
+                quoteChar = null; 
+            } else {
+                current += char;  
+            }
+            continue;
+        }
+
+        if (char === '"' || char === "'") {
+            quoteChar = char;
+            continue;
+        }
+
+        if (/\s/.test(char)) {
+            if (current.length > 0) {
+                tokens.push(current);
+                current = "";
+            }
+            continue;
+        }
+
+        current += char;
+    }
+    if (current.length > 0) tokens.push(current);
+
+    let method = "GET";
+    let url = "";
+    let headers = {};
+    let body = "";
+
+    for (let i = 0; i < tokens.length; i++) {
+        let t = tokens[i];
+        
+        if (t.toLowerCase() === 'curl' || t.toLowerCase() === 'curl.exe') continue;
+
+        if (t === '-H' || t === '--header') {
+            let headerRaw = tokens[++i];
+            if (headerRaw) {
+                let idx = headerRaw.indexOf(':');
+                if (idx > -1) {
+                    headers[headerRaw.substring(0, idx).trim()] = headerRaw.substring(idx + 1).trim();
+                }
+            }
+            continue;
+        }
+
+        if (t === '-X' || t === '--request') {
+            if (tokens[i+1]) {
+                method = tokens[++i].toUpperCase();
+            }
+            continue;
+        }
+
+        if (t === '-d' || t === '--data' || t === '--data-raw' || t === '--data-binary' || t === '--data-urlencode') {
+            if (tokens[i+1]) {
+                body = tokens[++i];
+                if (method === "GET") method = "POST";
+            }
+            continue;
+        }
+
+        if (t === '--url') {
+            if (tokens[i+1]) {
+                url = tokens[++i];
+            }
+            continue;
+        }
+
+        if (t.startsWith('-')) {
+            const argsToSkip = ['-A', '--user-agent', '-e', '--referer', '-b', '--cookie', '-o', '--output', '-m', '--max-time'];
+            if (argsToSkip.includes(t)) i++;  
+            continue;
+        }
+
+        if (!url && (t.startsWith('http') || t.includes('://'))) {
+            url = t;
+        }
+    }
+
+    let domain = "Unknown Domain";
+    let path = "/";
+    try {
+        const parsedUrl = new URL(url);
+        domain = parsedUrl.hostname;
+        path = parsedUrl.pathname + parsedUrl.search;
+    } catch (e) {
+        if (url) domain = url;
+    }
+
+    const newReq = {
+        id: Date.now().toString(),
+        method,
+        url,
+        domain,
+        path,
+        headers,
+        body: formatIfJson(body)
+    };
+
+    fetch('/api/curlparser/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReq)
+    }).catch(err => console.error("Save error:", err));
+
+    curlparserRequests.unshift(newReq);
+    toggleCurlModal(false);
+    rendercurlparserSidebar();
+    
+    selectcurlparserRequest(newReq.id);
+}
+
+function rendercurlparserSidebar() {
+    const sidebar = document.getElementById('curlparserSidebar');
+    sidebar.innerHTML = "";
+
+    if (curlparserRequests.length === 0) {
+        sidebar.innerHTML = '<div class="empty-state">No requests yet. Add a new cURL.</div>';
+        return;
+    }
+
+    curlparserRequests.forEach(req => {
+        let methodColor = req.method === "GET" ? "#10B981" : (req.method === "POST" ? "#3B82F6" : (req.method === "DELETE" ? "#EF4444" : "#F59E0B"));
+        let isActive = req.id === activeReqId;
+
+        const item = document.createElement('div');
+        item.style = `padding: 12px; border-bottom: 1px solid #2D3136; cursor: pointer; transition: 0.1s; background: ${isActive ? 'rgba(59,130,246,0.1)' : 'transparent'}; border-left: 3px solid ${isActive ? '#3B82F6' : 'transparent'};`;
+        item.onclick = () => selectcurlparserRequest(req.id);
+        
+        item.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+                <span style="color: ${methodColor}; font-weight: 800; font-size: 11px; letter-spacing: 0.5px;">${req.method}</span>
+                <span style="color: #9CA3AF; font-size: 10px; text-transform: uppercase;">${DOMPurify.sanitize(req.domain)}</span>
+            </div>
+            <div style="font-size: 12px; color: ${isActive ? '#FFF' : '#D1D5DB'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;">${DOMPurify.sanitize(req.path)}</div>
+        `;
+        sidebar.appendChild(item);
+    });
+}
+
+function selectcurlparserRequest(id) {
+    activeReqId = id;
+    const req = curlparserRequests.find(r => r.id === id);
+    if (!req) return;
+
+    document.getElementById('reqMethod').value = req.method;
+    document.getElementById('reqUrl').value = req.url;
+    
+    let headerText = "";
+    for (const [key, value] of Object.entries(req.headers)) {
+        headerText += `${key}: ${value}\n`;
+    }
+    
+    document.getElementById('reqHeaders').value = headerText.trim();
+    document.getElementById('reqBody').value = req.body ? formatIfJson(req.body) : ""; 
+
+    document.getElementById('resHeaders').value = "";
+    document.getElementById('resBody').value = "";
+    document.getElementById('resStatus').innerText = "Ready to Send";
+    document.getElementById('resStatus').style.background = "rgba(255,255,255,0.05)";
+    document.getElementById('resStatus').style.color = "#9CA3AF";
+
+    rendercurlparserSidebar();
+}
+
+async function sendcurlparserRequest() {
+    if (!activeReqId) return;
+
+    const btn = document.getElementById('sendReqBtn');
+    const statusBadge = document.getElementById('resStatus');
+    
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+    statusBadge.innerText = "Waiting...";
+    
+    const method = document.getElementById('reqMethod').value;
+    const url = document.getElementById('reqUrl').value;
+    const bodyStr = document.getElementById('reqBody').value;
+    
+    let headersObj = {};
+    const headersStr = document.getElementById('reqHeaders').value.trim();
+    if (headersStr) {
+        const lines = headersStr.split('\n');
+        for (let line of lines) {
+            const idx = line.indexOf(':');
+            if (idx > 0) {
+                const k = line.substring(0, idx).trim();
+                const v = line.substring(idx + 1).trim();
+                if (k) headersObj[k] = v;
+            }
+        }
+    }
+
+    try {
+        const res = await fetch('/api/curlparser/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ method, url, headers: headersObj, body: bodyStr })
+        });
+        
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        const code = data.status_code;
+        statusBadge.innerText = `${code} ${data.status_text || ''}`;
+        statusBadge.style.background = (code >= 200 && code < 300) ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
+        statusBadge.style.color = (code >= 200 && code < 300) ? "#10B981" : "#EF4444";
+
+        let resHeaderText = "";
+        if (data.headers) {
+            for (let [k, v] of Object.entries(data.headers)) {
+                let val = Array.isArray(v) ? v.join('; ') : v;
+                resHeaderText += `${k}: ${val}\n`;
+            }
+        }
+        document.getElementById('resHeaders').value = resHeaderText.trim();
+        
+        document.getElementById('resBody').value = formatIfJson(data.body);
+
+    } catch (err) {
+        statusBadge.innerText = "Connection Failed";
+        statusBadge.style.background = "rgba(239, 68, 68, 0.1)";
+        statusBadge.style.color = "#EF4444";
+        document.getElementById('resBody').value = "[SYS ERROR] " + err.message;
+        document.getElementById('resHeaders').value = "";
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Send";
+    }
+}
+
+function formatIfJson(text) {
+    if (!text) return "";
+    try {
+        return JSON.stringify(JSON.parse(text), null, 2);
+    } catch (e) {
+        return text;
+    }
+}
+
+async function loadcurlparserRequests() {
+    try {
+        const res = await fetch('/api/curlparser/requests');
+        const data = await res.json();
+        if (data) {
+            curlparserRequests = data;
+            rendercurlparserSidebar();
+        }
+    } catch (e) {
+        console.error("Failed to load requests:", e);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadcurlparserRequests();
+});

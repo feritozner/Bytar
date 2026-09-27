@@ -1,6 +1,10 @@
 package api
 
 import (
+	"bytar/internal/curlparser"
+	"bytar/internal/network"
+	"bytar/internal/sysinfo"
+	"bytar/internal/ui"
 	"context"
 	"embed"
 	"encoding/json"
@@ -8,10 +12,6 @@ import (
 	"io/fs"
 	"net/http"
 	"sync"
-
-	"bytar/internal/network"
-	"bytar/internal/sysinfo"
-	"bytar/internal/ui"
 
 	"github.com/gorilla/websocket"
 )
@@ -85,6 +85,9 @@ func StartWebServer(port string) {
 	mux.HandleFunc("/ws/traffic", serveWsMonitor)
 	mux.HandleFunc("/api/monitor/start", serveStartMonitor)
 	mux.HandleFunc("/api/monitor/stop", serveStopMonitor)
+	mux.HandleFunc("/api/curlparser/requests", curlparser.HandleGetcurlparserRequests)
+	mux.HandleFunc("/api/curlparser/add", curlparser.HandleAddcurlparserRequest)
+	mux.HandleFunc("/api/curlparser/send", curlparser.HandleSendcurlparserRequest)
 
 	if err := http.ListenAndServe("127.0.0.1:"+port, mux); err != nil {
 		fmt.Printf("\n%s[-] Web server stopped: %v%s\n", ui.Red, err, ui.Reset)

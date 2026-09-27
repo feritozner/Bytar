@@ -154,6 +154,8 @@ func handleCommand(input string) {
 		fmt.Printf("%s%s%s\n", ui.Reset, strings.Repeat("━", 100), ui.Reset)
 		fmt.Print(ui.Reset + res + ui.Reset)
 		fmt.Printf("%s%s%s\n", ui.Reset, strings.Repeat("━", 100), ui.Reset)
+	case "curlp":
+		fmt.Println(ui.Red + "[!] Curl Only Avaible On WebUI" + ui.Reset)
 	default:
 		fmt.Println("Command is missing or incorrect. Type 'help' for available commands.")
 	}

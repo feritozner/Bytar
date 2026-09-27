@@ -21,6 +21,7 @@
             <li id="nav-tasks" onclick="switchPage('tasks')">Task List</li>
             <li id="nav-lports" onclick="switchPage('lports')">Listening Ports</li>
             <li id="nav-firewall" onclick="switchPage('firewall')">Firewall Status</li>
+            <li id="nav-curlparser" onclick="switchPage('curlparser')">Curl Parser</li>
             <li id="nav-wifipass" onclick="switchPage('wifipass')">Wi-Fi Passwords</li>
         </ul>
         <div class="nav-controls">
@@ -213,7 +214,77 @@
                     <div style="padding: 15px; color: #9CA3AF; text-align: center; font-style: italic;">[SYS] Ready to intercept packets. Enter an IP and initialize capture.</div>
                 </div>
             </div>
-        </div>  
+        </div>
+        
+        <div id="page-curlparser" class="page" style="display: none; padding: 15px; height: calc(100vh - 80px);">
+
+            <div style="display: flex; gap: 15px; height: 100%;">
+
+                <div class="panel data-panel" style="flex: 0 0 280px; display: flex; flex-direction: column; background: #0E0F11;">
+                    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Request History</span>
+                        <button onclick="toggleCurlModal(true)" class="action-btn" style="padding: 4px 8px; font-size: 11px; background: rgba(59,130,246,0.1); color: #3B82F6;">+ Add cURL</button>
+                    </div>
+                    <div id="curlparserSidebar" class="scrollable" style="flex: 1; padding: 5px;">
+                        <div class="empty-state">No requests yet. Add a new cURL.</div>
+                    </div>
+                </div>
+                <!-- Orta Panel: Request Workspace -->
+                <div class="panel data-panel" style="flex: 1; display: flex; flex-direction: column; background: #0E0F11;">
+                    <div class="panel-header">Request Editor</div>
+                    <div style="padding: 10px; display: flex; gap: 10px; border-bottom: 1px solid #2D3136;">
+                        <select id="reqMethod" class="text-input" style="width: 100px; font-weight: bold; text-align: center;">
+                            <option>GET</option>
+                            <option>POST</option>
+                            <option>PUT</option>
+                            <option>DELETE</option>
+                            <option>PATCH</option>
+                            <option>OPTIONS</option>
+                            <option>HEAD</option>
+                            <option>TRACE</option>
+                            <option>CONNECT</option>
+                        </select>
+                        <input type="text" id="reqUrl" class="text-input" style="flex: 1; font-family: monospace;" placeholder="Target URL...">
+                        <button id="sendReqBtn" onclick="sendcurlparserRequest()" class="action-btn intel-btn">Send</button>
+                    </div>
+                    <div style="padding: 10px; flex: 1; display: flex; flex-direction: column; gap:10px;">
+                        <label style="color:#9CA3AF; font-size:12px;">Headers</label>
+                        <textarea id="reqHeaders" class="text-input" style="flex: 0.4; font-family: 'Consolas', monospace; font-size: 13px; resize: none; background: #16181B; white-space: pre-wrap; word-break: break-all; overflow: auto;" spellcheck="false" placeholder="Host: target.com&#10;User-Agent: Bytar/1.0"></textarea>
+<
+                        <label style="color:#9CA3AF; font-size:12px;">Body / Data</label>
+                        <textarea id="reqBody" class="text-input" style="flex: 0.6; font-family: 'Consolas', monospace; font-size: 13px; resize: none; background: #16181B; white-space: pre-wrap; word-break: break-all; overflow: auto;" spellcheck="false" placeholder="Raw request payload..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Sağ Panel: Response Workspace -->
+                <div class="panel data-panel" style="flex: 1; display: flex; flex-direction: column; background: #0E0F11;">
+                    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Response Monitor</span>
+                        <span id="resStatus" class="badge" style="background: rgba(255,255,255,0.05); color: #9CA3AF;">Awaiting Request</span>
+                    </div>
+                    <div style="padding: 10px; flex: 1; display: flex; flex-direction: column; gap:10px;">
+                        <label style="color:#9CA3AF; font-size:12px;">Response Headers</label>
+                        <textarea id="resHeaders" class="text-input" style="flex: 0.4; font-family: 'Consolas', monospace; font-size: 13px; resize: none; background: #0A0A0C; white-space: pre-wrap; word-break: break-all; overflow: auto;" readonly></textarea>
+
+                        <label style="color:#9CA3AF; font-size:12px;">Response Body</label>
+                        <textarea id="resBody" class="text-input" style="flex: 0.6; font-family: 'Consolas', monospace; font-size: 13px; resize: none; background: #0A0A0C; white-space: pre-wrap; word-break: break-all; overflow: auto;" readonly></textarea>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+</div>
+<div id="curlModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+    <div class="panel data-panel" style="width: 600px; max-width: 90%; background: #16181B; border: 1px solid #2D3136; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div class="panel-header" style="border-bottom: 1px solid #2D3136;">Import Raw cURL</div>
+        <div style="padding: 20px;">
+            <textarea id="curlInput" class="text-input" rows="10" style="width: 100%; font-family: monospace; resize: vertical; margin-bottom: 15px;" placeholder="Paste cURL command here (e.g. curl -X POST https://... -H 'Auth: X')"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="toggleCurlModal(false)" class="action-btn" style="background: transparent; border: 1px solid #2D3136; color: #9CA3AF;">Cancel</button>
+                <button onclick="parseCurlAndAdd()" class="action-btn scan-btn">Parse & Load</button>
+            </div>
+        </div>
+    </div>
 </div>
     </main>
     <script src="script.js"></script>

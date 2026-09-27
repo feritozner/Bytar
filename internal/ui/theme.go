@@ -57,6 +57,7 @@ func ShowHelp() {
 	fmt.Printf("%swifipass%s     : %sShow saved Wi-Fi passwords\n", CurrentTheme, Reset, White)
 	fmt.Printf("%stasks%s        : %sShow running Windows processes\n", CurrentTheme, Reset, White)
 	fmt.Printf("%slports%s       : %sShow listening ports\n", CurrentTheme, Reset, White)
+	fmt.Printf("%scurlp%s        : %sIt only works on web ui\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sbanner%s       : %sShow the Bytar banner\n", CurrentTheme, Reset, White)
 	fmt.Printf("%stheme <color>%s: %sChange output theme (red, green, blue, gray, magenta)\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sclear%s        : %sClear the terminal screen\n", CurrentTheme, Reset, White)
