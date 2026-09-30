@@ -268,8 +268,13 @@ async function runGlobalScan() {
                 if (conn.loc && conn.loc !== "" && conn.loc !== "0,0") {
                     const coords = conn.loc.split(',');
                     if (coords.length === 2) {
-                        const lat = parseFloat(coords[0].trim());
-                        const lng = parseFloat(coords[1].trim());
+                       
+                        const jitterLat = (Math.random() - 0.5) * 0.8;
+                        const jitterLng = (Math.random() - 0.5) * 0.8;
+
+                        const lat = parseFloat(coords[0].trim()) + jitterLat;
+                        const lng = parseFloat(coords[1].trim()) + jitterLng;
+
                         if (!isNaN(lat) && !isNaN(lng)) {
                             const color = sProto === 'TCP' ? '#2f81f7' : '#ffab00';
                             const popupContent = DOMPurify.sanitize(`
@@ -282,7 +287,8 @@ async function runGlobalScan() {
                                     <b>Organization:</b> ${sOrg}
                                 </div>
                             `);
-                            L.circleMarker([lat, lng], { radius: 4, fillColor: color, color: "#fff", weight: 0.8, opacity: 1, fillOpacity: 0.85 })
+                            
+                            L.circleMarker([lat, lng], { radius: 4, fillColor: color, color: "#fff", weight: 0.8, opacity: 1, fillOpacity: 0.6 })
                               .addTo(markerLayer).bindPopup(popupContent); 
                         }
                     }

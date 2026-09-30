@@ -69,24 +69,27 @@ func GetEstablishedConnections() ([]Connection, error) {
 
 	for _, line := range lines {
 
-		if !strings.Contains(line, "ESTABLISHED") {
-			continue
-		}
-
 		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
-		if len(fields) < 5 {
+		if len(fields) < 4 {
 			continue
 		}
 
 		remoteIP := ExtractIP(fields[2])
-		if remoteIP == "" {
+
+		if remoteIP == "" || remoteIP == "*:*" || remoteIP == "0.0.0.0" || remoteIP == "::" || remoteIP == "*" || remoteIP == "Address" {
 			continue
 		}
 
-		info, _ := GetIPInfo(remoteIP)
-		if info == nil {
-			info = &IPInfo{Org: "-", Country: "-"}
+		var info *IPInfo
+
+		if remoteIP == "127.0.0.1" || remoteIP == "0.0.0.0" {
+			info = &IPInfo{Org: "Localhost", Country: "Local", Loc: "0,0"}
+		} else {
+			info, _ = GetIPInfo(remoteIP)
+			if info == nil {
+				info = &IPInfo{Org: "-", Country: "-", Loc: "0,0"}
+			}
 		}
 
 		conn := Connection{
@@ -96,7 +99,7 @@ func GetEstablishedConnections() ([]Connection, error) {
 			Country:  info.Country,
 			Org:      info.Org,
 			Loc:      info.Loc,
-			PID:      fields[4],
+			PID:      fields[len(fields)-1],
 		}
 		connections = append(connections, conn)
 		fmt.Printf("%s%-8s%s %s%-8s%s %s%-22s%s %s%-22s%s %s%-10s%s %s%-45s%s\n",
