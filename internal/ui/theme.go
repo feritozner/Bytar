@@ -48,7 +48,8 @@ func ClearScreen() {
 func ShowHelp() {
 	fmt.Println(CurrentTheme + "\nAvailable Commands:\n" + Reset)
 	fmt.Printf("%shelp%s         : %sShow this help menu\n", CurrentTheme, Reset, White)
-	fmt.Printf("%swebui%s        : %sStart the Web Dashboard in background\n", CurrentTheme, Reset, White)
+	fmt.Printf("%swebui%s        : %sStart the web dashboard in background\n", CurrentTheme, Reset, White)
+	fmt.Printf("%sdeskapp%s      : %sStart the web dashboard as a desktop app\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sconnections%s  : %sList established TCP connections with IP info\n", CurrentTheme, Reset, White)
 	fmt.Printf("%sscan <ip>%s    : %sScan an IP and show geo and network info\n", CurrentTheme, Reset, White)
 	fmt.Printf("%smon <ip>%s     : %sMonitor the packets to/from <ip>\n", CurrentTheme, Reset, White)
