@@ -31,7 +31,7 @@ func StartDeskAppMode() string {
 		return ""
 	}
 
-	fmt.Print("-----------\n1.Brave\n2.Chrome\n3.Custom\n-----------", "\nChoose An Option: ")
+	fmt.Print("-----------\n1.Brave\n2.Chrome\n3.Custom\n-----------", "\nChoose An Option (Default is Brave): ")
 
 	fmt.Scan(&browser)
 	switch browser {
@@ -39,9 +39,8 @@ func StartDeskAppMode() string {
 		browser = "brave"
 	case "2":
 		browser = "chrome"
-	case "3":
-		fmt.Print("Enter Browser Name: ")
-		fmt.Scan(&browser)
+	default:
+		browser = "brave"
 	}
 
 	cmd := exec.Command(
