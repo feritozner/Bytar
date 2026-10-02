@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -22,6 +23,47 @@ var (
 	activeCancel     context.CancelFunc
 )
 
+func StartDeskAppMode() string {
+	var browser string
+
+	if !webServerRunning {
+		fmt.Println(ui.Yellow + "[!] Web server is not running. Please run \"webui\" first." + ui.Reset)
+		return ""
+	}
+
+	fmt.Print("-----------\n1.Brave\n2.Chrome\n3.Custom\n-----------", "\nChoose An Option: ")
+
+	fmt.Scan(&browser)
+	switch browser {
+	case "1":
+		browser = "brave"
+	case "2":
+		browser = "chrome"
+	case "3":
+		fmt.Print("Enter Browser Name: ")
+		fmt.Scan(&browser)
+	}
+
+	cmd := exec.Command(
+		"cmd",
+		"/c",
+		"start",
+		"",
+		browser,
+		"--app=http://127.0.0.1:9001",
+	)
+
+	output, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(ui.Red + "[!] Browser not found" + ui.Reset)
+		return ""
+	}
+
+	fmt.Println(ui.Blue + "[+] Desktop app mode activated" + ui.Reset)
+	return string(output)
+}
+
 func RunCli() {
 
 	ui.PrintBanner()
@@ -33,12 +75,10 @@ func RunCli() {
 	go func() {
 		for range signalChan {
 			if activeCancel != nil {
-				// If mon is active, stop it
 				fmt.Println("\nStopping current task...")
 				activeCancel()
 				activeCancel = nil
 			} else {
-				// If there is no active task, shut down the program
 				fmt.Println("\nBytar is shutting down...")
 				os.Exit(0)
 			}
@@ -156,6 +196,8 @@ func handleCommand(input string) {
 		fmt.Printf("%s%s%s\n", ui.Reset, strings.Repeat("━", 100), ui.Reset)
 	case "curlp":
 		fmt.Println(ui.Red + "[!] Curl Only Avaible On WebUI" + ui.Reset)
+	case "deskapp":
+		StartDeskAppMode()
 	default:
 		fmt.Println("Command is missing or incorrect. Type 'help' for available commands.")
 	}
